@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gacha Lootbox - RNG Web Game</title>
+    <style>
+        /* Styling Global */
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5; /* Latar belakang abu-abu muda */
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background-color: #3b5998; /* Biru tua */
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            margin: 0 0 5px 0;
+        }
+
+        /* Konten Utama */
+        .main-content {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+            padding: 30px;
+            flex-grow: 1;
+        }
+
+        /* Area Gacha dan Hasil */
+        .gacha-area, .result-area {
+            background-color: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .result-area {
+            max-width: 350px;
+        }
+
+        .result-area h2 {
+            color: #e54c3c; /* Merah */
+            border-bottom: 2px solid #e54c3c;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+
+        /* Tampilan Lootbox */
+        .lootbox-container {
+            height: 150px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 1000px; /* Untuk efek 3D */
+        }
+
+        .lootbox-closed, .lootbox-opening {
+            width: 120px;
+            height: 120px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 60px;
+            transition: all 0.5s ease;
+            cursor: pointer;
+            background-color: #ffcc00; /* Kuning emas */
+            box-shadow: 0 8px 0 #cc9900, 0 10px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Animasi sederhana */
+        .lootbox-opening {
+            transform: rotateY(180deg) scale(1.1); /* Rotasi dan sedikit membesar */
+            background-color: #4CAF50; /* Hijau saat terbuka */
+            box-shadow: 0 8px 0 #388E3C, 0 10px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Tombol Gacha */
+        .gacha-button {
+            background-color: #e54c3c; /* Merah */
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+            box-shadow: 0 4px 0 #b23a2e; /* Shadow untuk efek 3D */
+            outline: none;
+            font-weight: bold;
+        }
+
+        .gacha-button:hover {
+            background-color: #cc4436;
+        }
+
+        .gacha-button:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #b23a2e;
+        }
+
+        .gacha-button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 0 4px 0 #aaa;
+        }
+
+        /* Tampilan Hasil */
+        .result-display {
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 15px;
+        }
+
+        .item-card {
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            animation: fadeIn 1s ease-out;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Warna Rarity */
+        .rarity-Common { background-color: #a0a0a0; color: #333; } /* Abu-abu */
+        .rarity-Rare { background-color: #6495ed; color: white; }    /* Biru Cornflower */
+        .rarity-Epic { background-color: #9932cc; color: white; }    /* Ungu Dark Orchid */
+        .rarity-Legendary { background-color: #ffdf00; color: #333; } /* Emas */
+
+        .rarity-label {
+            font-weight: bold;
+            display: block;
+            margin-top: 5px;
+            font-size: 1.1em;
+        }
+
+        /* Animasi fade in */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Footer dan Tombol Aksi */
+        .footer {
+            background-color: #3b5998;
+            padding: 15px 20px;
+            text-align: center;
+            box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .footer-button {
+            background-color: #4CAF50; /* Hijau */
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 0 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-weight: bold;
+        }
+
+        .footer-button:hover {
+            background-color: #45a049;
+        }
+
+        /* UI Inventaris */
+        .inventory-ui {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 300px;
+            height: 100%;
+            background-color: #333;
+            color: white;
+            box-shadow: -5px 0 15px rgba(0, 0, 0, 0.5);
+            transform: translateX(0);
+            transition: transform 0.4s ease-in-out;
+            z-index: 1000;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .inventory-ui.hidden {
+            transform: translateX(100%); /* Sembunyikan dengan menggeser ke kanan */
+        }
+
+        .inventory-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #555;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .inventory-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-right: 10px; /* Untuk scrollbar */
+        }
+
+        .inventory-item {
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .inventory-item .count {
+            background-color: #555;
+            padding: 2px 6px;
+            border-radius: 50%;
+            font-size: 0.8em;
+        }
+
+        .inventory-count {
+            text-align: right;
+            margin-top: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>✨ Gacha Simulator Web Game ✨</h1>
+        <p>Uji keberuntungan Anda! Buka Lootbox dan kumpulkan item langka!</p>
+    </header>
+
+    <main class="main-content">
+        <section class="gacha-area">
+            <div id="lootboxContainer" class="lootbox-container">
+                <div id="lootbox" class="lootbox-closed">
+                    <span class="box-icon">🎁</span>
+                </div>
+            </div>
+            <button id="openLootboxBtn" class="gacha-button">Buka Lootbox!</button>
+        </section>
+
+        <section class="result-area">
+            <h2>Hasil Terbaru</h2>
+            <div id="resultDisplay" class="result-display">
+                <p>Klik tombol untuk membuka lootbox.</p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <button id="toggleInventoryBtn" class="footer-button">
+            📦 Tampilkan Inventaris
+        </button>
+        <button id="saveInventoryBtn" class="footer-button">
+            💾 Simpan Inventaris
+        </button>
+    </footer>
+
+    <div id="inventoryUI" class="inventory-ui hidden">
+        <div class="inventory-header">
+            <h3>📦 Inventaris Anda</h3>
+            <button id="closeInventoryBtn" class="close-btn">&times;</button>
+        </div>
+        <div id="inventoryList" class="inventory-list">
+            </div>
+        <p id="inventoryCount" class="inventory-count">Total Item: 0</p>
+    </div>
+
+    <script>
+    // Objek utama yang berisi semua logika game
+    const GachaGame = {
+        // 2. Daftar Item lengkap dengan rarity (Total 40 Item)
+        items: [
+            // --- COMMON (Total 20 Item) ---
+            { name: "Peta Rusak", rarity: "Common" }, // Item lama
+            { name: "Koin Perunggu", rarity: "Common" }, // Item lama
+            { name: "Obor Usang", rarity: "Common" }, // Item lama
+            { name: "Paku Berkarat", rarity: "Common" },
+            { name: "Serpihan Kaca", rarity: "Common" },
+            { name: "Batu Lumut", rarity: "Common" },
+            { name: "Ranting Patah", rarity: "Common" },
+            { name: "Botol Kosong", rarity: "Common" },
+            { name: "Sepotong Roti Kering", rarity: "Common" },
+            { name: "Gembok Macet", rarity: "Common" },
+            { name: "Buku Catatan Sobek", rarity: "Common" },
+            { name: "Kunci Berbentuk Aneh", rarity: "Common" },
+            { name: "Sepatu Bolong", rarity: "Common" },
+            { name: "Tali Kusut", rarity: "Common" },
+            { name: "Kertas Minyak", rarity: "Common" },
+            { name: "Karung Kotor", rarity: "Common" },
+            { name: "Lilin Bekas", rarity: "Common" },
+            { name: "Bulu Ayam", rarity: "Common" },
+            { name: "Cangkir Retak", rarity: "Common" },
+            { name: "Pasir Hitam", rarity: "Common" },
+
+            // --- RARE (Total 12 Item) ---
+            { name: "Pedang Baja", rarity: "Rare" }, // Item lama
+            { name: "Jubah Pelindung", rarity: "Rare" }, // Item lama
+            { name: "Ramuan Penyembuh", rarity: "Rare" }, // Item lama
+            { name: "Perisai Kayu Kuat", rarity: "Rare" },
+            { name: "Helm Baja Ringan", rarity: "Rare" },
+            { name: "Busur Elven", rarity: "Rare" },
+            { name: "Amulet Keberanian", rarity: "Rare" },
+            { name: "Sepasang Sarung Tangan Kulit", rarity: "Rare" },
+            { name: "Obat Kuat Eksotis", rarity: "Rare" },
+            { name: "Peta Harta Karun (Tiruan)", rarity: "Rare" },
+            { name: "Pisau Lempar Tajam", rarity: "Rare" },
+            { name: "Batu Mana Kecil", rarity: "Rare" },
+
+            // --- EPIC (Total 6 Item) ---
+            { name: "Cincin Energi", rarity: "Epic" }, // Item lama
+            { name: "Armor Naga", rarity: "Epic" }, // Item lama
+            { name: "Pedang Elementalist", rarity: "Epic" },
+            { name: "Jubah Invisibility", rarity: "Epic" },
+            { name: "Tanduk Perang Kuno", rarity: "Epic" },
+            { name: "Kristal Pemanggil", rarity: "Epic" },
+
+            // --- LEGENDARY (Total 2 Item) ---
+            { name: "Tongkat Sihir Kuno", rarity: "Legendary" }, // Item lama
+            { name: "Mahkota Raja", rarity: "Legendary" }, // Item lama
+            { name: "Sayap Pegasus", rarity: "Legendary" },
+            { name: "Kapal Udara Miniatur", rarity: "Legendary" },
+        ],
+
+        // 4. Probabilitas Rarity (Tidak Berubah)
+        probabilities: [
+            { rarity: "Legendary", weight: 5 }, // 5%
+            { rarity: "Epic", weight: 15 },     // 15%
+            { rarity: "Rare", weight: 30 },     // 30%
+            { rarity: "Common", weight: 50 },   // 50%
+            ],
+
+            // 5. Inventaris yang akan menyimpan item (Nama Item: {rarity, count})
+            inventory: {},
+
+            // Elemen DOM yang akan digunakan
+            dom: {
+                openLootboxBtn: document.getElementById('openLootboxBtn'),
+                lootbox: document.getElementById('lootbox'),
+                resultDisplay: document.getElementById('resultDisplay'),
+                inventoryUI: document.getElementById('inventoryUI'),
+                inventoryList: document.getElementById('inventoryList'),
+                toggleInventoryBtn: document.getElementById('toggleInventoryBtn'),
+                closeInventoryBtn: document.getElementById('closeInventoryBtn'),
+                saveInventoryBtn: document.getElementById('saveInventoryBtn'),
+                inventoryCount: document.getElementById('inventoryCount'),
+            },
+
+            /**
+             * Inisialisasi Game: Memuat inventaris dan mengatur event listener
+             */
+            init: function() {
+                console.log("Game Gacha dimulai.");
+                this.loadInventory();
+                this.updateInventoryUI();
+                this.addEventListeners();
+            },
+
+            /**
+             * Mengatur Event Listener untuk tombol
+             */
+            addEventListeners: function() {
+                this.dom.openLootboxBtn.addEventListener('click', () => this.openLootbox());
+                this.dom.toggleInventoryBtn.addEventListener('click', () => this.toggleInventory(true));
+                this.dom.closeInventoryBtn.addEventListener('click', () => this.toggleInventory(false));
+                this.dom.saveInventoryBtn.addEventListener('click', () => this.saveInventory());
+            },
+
+            /**
+             * 6. Memuat inventaris dari localStorage
+             */
+            loadInventory: function() {
+                // Cek apakah ada data di localStorage dengan kunci 'gachaInventory'
+                const savedInventory = localStorage.getItem('gachaInventory');
+                if (savedInventory) {
+                    try {
+                        // Parse JSON string ke objek JavaScript
+                        this.inventory = JSON.parse(savedInventory);
+                        console.log("Inventaris berhasil dimuat.");
+                    } catch (e) {
+                        console.error("Gagal memuat atau parse inventaris:", e);
+                        this.inventory = {};
+                    }
+                }
+            },
+
+            /**
+             * 6. Menyimpan inventaris ke localStorage
+             */
+            saveInventory: function() {
+                try {
+                    // Konversi objek inventaris ke JSON string dan simpan
+                    localStorage.setItem('gachaInventory', JSON.stringify(this.inventory));
+                    alert('Inventaris berhasil disimpan ke browser!');
+                } catch (e) {
+                    console.error("Gagal menyimpan inventaris:", e);
+                    alert('Gagal menyimpan inventaris.');
+                }
+            },
+
+            /**
+             * 7. Mengubah status tampilan inventaris
+             * @param {boolean} show - true untuk menampilkan, false untuk menyembunyikan
+             */
+            toggleInventory: function(show) {
+                const isHidden = this.dom.inventoryUI.classList.contains('hidden');
+
+                if (show === true || (show === undefined && isHidden)) {
+                    this.dom.inventoryUI.classList.remove('hidden');
+                    this.dom.toggleInventoryBtn.textContent = '📦 Sembunyikan Inventaris';
+                } else if (show === false || (show === undefined && !isHidden)) {
+                    this.dom.inventoryUI.classList.add('hidden');
+                    this.dom.toggleInventoryBtn.textContent = '📦 Tampilkan Inventaris';
+                }
+            },
+
+            /**
+             * 3. Fungsi utama untuk membuka lootbox
+             */
+            openLootbox: function() {
+                // Nonaktifkan tombol saat proses berlangsung
+                this.dom.openLootboxBtn.disabled = true;
+                this.dom.openLootboxBtn.textContent = 'Membuka...';
+
+                // 9. Animasi lootbox terbuka
+                this.dom.lootbox.classList.remove('lootbox-closed');
+                this.dom.lootbox.classList.add('lootbox-opening');
+                this.dom.lootbox.querySelector('.box-icon').textContent = '✨';
+
+                // Hapus hasil sebelumnya
+                this.dom.resultDisplay.innerHTML = '<p>Keberuntungan sedang diuji...</p>';
+
+                // Jeda untuk animasi (misalnya 1 detik)
+                setTimeout(() => {
+                    const drawnItem = this.drawItem();
+                    this.displayResult(drawnItem);
+                    this.addItemToInventory(drawnItem);
+
+                    // Reset animasi
+                    this.dom.lootbox.classList.remove('lootbox-opening');
+                    this.dom.lootbox.classList.add('lootbox-closed');
+                    this.dom.lootbox.querySelector('.box-icon').textContent = '🎁';
+
+                    // Aktifkan kembali tombol
+                    this.dom.openLootboxBtn.disabled = false;
+                    this.dom.openLootboxBtn.textContent = 'Buka Lootbox!';
+
+                }, 1000); // 1000ms = 1 detik untuk animasi
+            },
+
+            /**
+             * 4. Logika RNG untuk memilih item berdasarkan probabilitas
+             * @returns {Object} - Item yang ditarik (name, rarity)
+             */
+            drawItem: function() {
+                // Hitung total bobot
+                const totalWeight = this.probabilities.reduce((sum, p) => sum + p.weight, 0);
+
+                // Hasilkan angka acak antara 0 dan totalWeight
+                let randomNum = Math.random() * totalWeight;
+
+                let selectedRarity = null;
+                // Tentukan rarity berdasarkan angka acak
+                for (const prob of this.probabilities) {
+                    randomNum -= prob.weight;
+                    if (randomNum < 0) {
+                        selectedRarity = prob.rarity;
+                        break;
+                    }
+                }
+
+                // Filter item berdasarkan rarity yang terpilih
+                const possibleItems = this.items.filter(item => item.rarity === selectedRarity);
+
+                // Pilih item secara acak dari item yang mungkin
+                const randomIndex = Math.floor(Math.random() * possibleItems.length);
+                const drawnItem = possibleItems[randomIndex];
+
+                console.log(`Ditarik: ${drawnItem.name} (${drawnItem.rarity})`);
+                return drawnItem;
+            },
+
+            /**
+             * Menampilkan hasil item yang didapat di UI
+             * @param {Object} item - Item yang ditarik
+             */
+            displayResult: function(item) {
+                // Hapus konten lama
+                this.dom.resultDisplay.innerHTML = '';
+
+                // Tampilkan item baru dengan styling rarity yang sesuai
+                const itemCard = document.createElement('div');
+                itemCard.className = `item-card rarity-${item.rarity}`;
+                itemCard.innerHTML = `
+                    <h3>🎉 SELAMAT! Anda Mendapatkan:</h3>
+                    <h2>${item.name}</h2>
+                    <span class="rarity-label">Rarity: ${item.rarity.toUpperCase()}</span>
+                `;
+                this.dom.resultDisplay.appendChild(itemCard);
+            },
+
+            /**
+             * 5. Menambahkan item ke inventaris dan memperbarui UI
+             * @param {Object} item - Item yang ditarik
+             */
+            addItemToInventory: function(item) {
+                const itemName = item.name;
+                // Tambahkan atau tingkatkan jumlah item dalam inventaris
+                if (this.inventory[itemName]) {
+                    this.inventory[itemName].count += 1;
+                } else {
+                    // Jika item baru, simpan nama, rarity, dan jumlah
+                    this.inventory[itemName] = {
+                        rarity: item.rarity,
+                        count: 1
+                    };
+                }
+                this.updateInventoryUI();
+            },
+
+            /**
+             * 5. Memperbarui tampilan inventaris di UI
+             */
+            updateInventoryUI: function() {
+                this.dom.inventoryList.innerHTML = '';
+                let totalCount = 0;
+
+                // Iterasi melalui setiap item dalam inventaris
+                for (const itemName in this.inventory) {
+                    const itemData = this.inventory[itemName];
+                    totalCount += itemData.count;
+
+                    const itemElement = document.createElement('div');
+                    itemElement.className = `inventory-item rarity-${itemData.rarity}`;
+                    itemElement.innerHTML = `
+                        <span>${itemName}</span>
+                        <span class="count">${itemData.count}</span>
+                    `;
+                    this.dom.inventoryList.appendChild(itemElement);
+                }
+
+                this.dom.inventoryCount.textContent = `Total Item: ${totalCount}`;
+            }
+        };
+
+        // Panggil fungsi inisialisasi saat DOM selesai dimuat
+        document.addEventListener('DOMContentLoaded', () => {
+            GachaGame.init();
+        });
+    </script>
+</body>
+</html>
